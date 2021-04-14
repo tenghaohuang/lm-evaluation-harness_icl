@@ -1,0 +1,2 @@
+# pass either hub identifier or path to your lm in pretrained=<LM_NAME_OR_PATH>
+python main.py --model gpt2 --model_args device=cuda:0,pretrained=checkpoints/first_lm --tasks cola,qqp,qnli,sst,boolq,rte,wsc --provide_description
