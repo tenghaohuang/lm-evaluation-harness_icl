@@ -68,10 +68,10 @@ class SST(HFTask):
         return False
 
     def fewshot_description(self):
-        return "Indicate if the sentiment of each sentence is positive or negative."
+        return "Determine whether the sentiment of this sentence is positive or negative: "
 
     def doc_to_text(self, doc):
-        return "{}\nQuestion: Is this sentence positive or negative?\nAnswer:".format(
+        return "\"{}\"\nThe sentence is".format(
             general_detokenize(doc["sentence"]),
         )
 
