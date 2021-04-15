@@ -27,18 +27,18 @@ class BoolQ(HFTask):
 
     def fewshot_description(self):
         # TODO: figure out actual description
-        return "Read the following passages and answer each question with a yes or a no."
+        return "Determine whether the question about the following passage is true."
 
     def doc_to_text(self, doc):
-        return f"{doc['passage']}\nQuestion: {doc['question']}\nAnswer:"
+        return f"{doc['passage']}\n\nQuestion: {doc['question']}\nAnswer:"
     
     def doc_to_target(self, doc):
-        return " " + yesno(doc['label']) 
+        return " " + str(doc['label']).lower()
 
     def construct_requests(self, doc, ctx):
 
-        ll_yes, _ = rf.loglikelihood(ctx, ' yes')
-        ll_no, _ = rf.loglikelihood(ctx, ' no')
+        ll_yes, _ = rf.loglikelihood(ctx, ' true')
+        ll_no, _ = rf.loglikelihood(ctx, ' false')
 
         return ll_yes, ll_no
 

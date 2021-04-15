@@ -52,9 +52,9 @@ class WinogradSchemaChallenge273(HFTask):
     def has_test_docs(self):
         return True
 
-    def fewshot_description(self):
-        # TODO: redo description
-        return "Winograd schema sentence with correct continuation. True. Winograd schema sentence with incorrect continuation. False."
+    #def fewshot_description(self):
+        ## TODO: redo description
+        #return "Complete the following text:"
 
     def fewshot_examples(self, k, rnd):
         # NOTE: `super().fewshot_examples` samples from training docs which are

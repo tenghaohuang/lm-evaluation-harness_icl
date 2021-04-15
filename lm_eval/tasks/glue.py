@@ -187,7 +187,7 @@ class QNLI(HFTask):
         return False
 
     def doc_to_text(self, doc):
-        return "{}\n{}\nQuestion: Does this response answer the question?\nAnswer:".format(
+        return "{}\n\"{}\" is".format(
             doc["question"],
             doc["sentence"],
         )
@@ -195,11 +195,11 @@ class QNLI(HFTask):
     def doc_to_target(self, doc):
         # True = entailment
         # False = not entailment
-        return " {}".format({0: "yes", 1: "no"}[doc["label"]])
+        return " {}".format({0: "the correct answer.", 1: "not the correct answer."}[doc["label"]])
 
     def construct_requests(self, doc, ctx):
-        ll_yes, _ = rf.loglikelihood(ctx, " yes")
-        ll_no, _ = rf.loglikelihood(ctx, " no")
+        ll_yes, _ = rf.loglikelihood(ctx, " the correct answer.")
+        ll_no, _ = rf.loglikelihood(ctx, " not the correct answer.")
         return ll_yes, ll_no
 
     def process_results(self, doc, results):
@@ -284,7 +284,7 @@ class RTE(HFTask):
         return False
 
     def doc_to_text(self, doc):
-        return "{}\nQuestion: {} True or False?\nAnswer:".format(
+        return "{}\n\nquestion: {}:\nanswer:".format(
             doc["sentence1"],
             doc["sentence2"],
         )
