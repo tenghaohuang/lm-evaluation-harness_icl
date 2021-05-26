@@ -1,9 +1,10 @@
 import collections
 import itertools
 import random
+import lm_eval.metrics
 
 
-def evaluate(lm, task_dict, provide_description, num_fewshot, limit):
+def evaluate(lm, task_dict, provide_description, num_fewshot, limit, bootstrap_iters=100000):
     # TODO: completely refactor this entire function to not be a huge mess, ideally breaking it down into smaller pieces
 
     task_dict_items = [(name, task) for name, task in task_dict.items() if(task.has_validation_docs() or task.has_test_docs())]
@@ -63,6 +64,7 @@ def evaluate(lm, task_dict, provide_description, num_fewshot, limit):
         # only in index. We could implement some kind of caching, but that would be more of a bandaid
         # solution. we could also implement some kind of autogrouping here; they should end up next to each other.
 
+        print("Running", reqtype, "requests")
         resps = getattr(lm, reqtype)([req.args for req in reqs])
 
         resps = [x if req.index is None else x[req.index] for x, req in zip(resps, reqs)]
@@ -88,5 +90,9 @@ def evaluate(lm, task_dict, provide_description, num_fewshot, limit):
     for (task_name, metric), items in vals.items():
         task = task_dict[task_name]
         results[task_name][metric] = task.aggregation()[metric](items)
+
+        stderr = lm_eval.metrics.stderr_for_metric(task.aggregation()[metric], bootstrap_iters=bootstrap_iters)
+        if stderr is not None:
+            results[task_name][metric + "_stderr"] = stderr(items)
     
     return results

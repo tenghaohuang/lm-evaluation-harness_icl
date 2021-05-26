@@ -37,6 +37,7 @@ from . import hendrycks_test
 from . import hendrycks_math
 from . import cbt
 from . import lambada_cloze
+from . import pile
 
 ########################################
 # Translation tasks
@@ -94,8 +95,8 @@ TASK_REGISTRY = {
     "drop": drop.DROP,
     "lambada": lambada.LAMBADA,
     "lambada_cloze": lambada_cloze.LAMBADA_cloze,
-    "cbt-cn": cbt.CBTCN,
-    "cbt-ne": cbt.CBTNE,
+    # "cbt-cn": cbt.CBTCN, # disabled pending context length fix
+    # "cbt-ne": cbt.CBTNE, # disabled pending context length fix
 
     "piqa": piqa.PiQA,
 
@@ -107,7 +108,7 @@ TASK_REGISTRY = {
     "qa4mre_2012" : qa4mre.QA4MRE_2012,
     "qa4mre_2013" : qa4mre.QA4MRE_2013,
 
-    "triviaqa": triviaqa.TriviaQA,
+    #"triviaqa": triviaqa.TriviaQA, # disabled pending memory fix
     "arc_easy": arc.ARCEasy,
     "arc_challenge": arc.ARCChallenge,
     # "quac": quac.QuAC, # not implemented yet
@@ -171,6 +172,30 @@ TASK_REGISTRY = {
     "cycle_letters": unscramble.CycleLetters,
     "random_insertion": unscramble.RandomInsertion,
     "reversed_words": unscramble.ReversedWords,
+
+    # Pile
+    "pile_arxiv": pile.PileArxiv,
+    "pile_books3": pile.PileBooks3,
+    "pile_bookcorpus2": pile.PileBookCorpus2,
+    "pile_dm-mathematics": pile.PileDmMathematics,
+    "pile_enron": pile.PileEnron,
+    "pile_europarl": pile.PileEuroparl,
+    "pile_freelaw": pile.PileFreeLaw,
+    "pile_github": pile.PileGithub,
+    "pile_gutenberg": pile.PileGutenberg,
+    "pile_hackernews": pile.PileHackernews,
+    "pile_nih-exporter": pile.PileNIHExporter,
+    "pile_opensubtitles": pile.PileOpenSubtitles,
+    "pile_openwebtext2": pile.PileOpenWebText2,
+    "pile_philpapers": pile.PilePhilPapers,
+    "pile_pile-cc": pile.PilePileCc,
+    "pile_pubmed-abstracts": pile.PilePubmedAbstracts,
+    "pile_pubmed-central": pile.PilePubmedCentral,
+    "pile_stackexchange": pile.PileStackExchange,
+    "pile_uspto": pile.PileUspto,
+    "pile_ubuntu-irc": pile.PileUbuntuIrc,
+    "pile_wikipedia": pile.PileWikipedia,
+    "pile_youtubesubtitles": pile.PileYoutubeSubtitles,
 }
 
 

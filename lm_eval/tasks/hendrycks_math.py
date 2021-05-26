@@ -19,7 +19,7 @@ class Math(Task):
             sh(f"""
             mkdir -p {self.DATASET_PATH}
             wget https://people.eecs.berkeley.edu/~hendrycks/MATH.tar.gz -P data/
-            tar -xvf {self.DATASET_PATH}.tar.gz -C data/
+            tar -xf {self.DATASET_PATH}.tar.gz -C data/
             rm {self.DATASET_PATH}.tar.gz
             """)
 
@@ -107,16 +107,23 @@ class Math(Task):
             return str1 == str2
 
     def remove_boxed(self, s):
-        left = "\\boxed{"
-        try:
+        if "\\boxed " in s:
+            left = "\\boxed "
             assert s[:len(left)] == left
-            assert s[-1] == "}"
-            return s[len(left):-1]
-        except AssertionError:
-            return None
+            return s[len(left):]
+
+        left = "\\boxed{"
+
+        assert s[:len(left)] == left
+        assert s[-1] == "}"
+
+        return s[len(left):-1]
 
     def last_boxed_only_string(self, string):
+            
         idx = string.rfind("\\boxed")
+        if "\\boxed " in string:
+            return "\\boxed " + string.split("\\boxed ")[-1].split("$")[0]
         if idx < 0:
             idx = string.rfind("\\fbox")
             if idx < 0:
