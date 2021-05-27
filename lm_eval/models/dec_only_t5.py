@@ -99,7 +99,7 @@ class DecoderOnlyT5LM(LM):
                 outputs = self._model_call(inps)
                 multi_logits = F.log_softmax(outputs, dim=-1).cpu()  # [batch, seq, vocab]
 
-                for (cache_key, _, _), logits, inp, inplen, cont_toks in zip(chunk, multi_logits, inps, inplens, contlens):
+                for (cache_key, _, _), logits, inp, inplen, cont_toks in zip(chunk, multi_logits, inps["input_ids"], inplens, contlens):
                     contlen = len(cont_toks)
                     logits = logits[inplen-contlen:inplen].unsqueeze(0) # [1, seq, vocab]
                     greedy_tokens = logits.argmax(dim=-1)
