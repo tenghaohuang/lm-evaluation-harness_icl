@@ -23,11 +23,9 @@ class T5LM(LM):
         self.t5 = transformers.AutoModelForSeq2SeqLM.from_pretrained(pretrained).to(self.device)
         self.t5.eval()
 
-        # pretrained tokenizer for neo is broken for now so just hardcoding this to gpt2
         self.tokenizer = transformers.T5TokenizerFast.from_pretrained(pretrained)
         self.max_length = self.MAX_INP_LENGTH
 
-        # multithreading and batching
         gpus = torch.cuda.device_count()
         if gpus > 1:
             batch_size_per_gpu = batch_size # todo: adaptive batch size
@@ -36,9 +34,6 @@ class T5LM(LM):
             # self.t5 = nn.DataParallel(self.t5)
         else:
             self.batch_size = batch_size
-
-        # TODO: fix multi-gpu
-        # if gpus > 1:
 
     @classmethod
     def create_from_arg_string(cls, arg_string, additional_config={}):
@@ -84,7 +79,6 @@ class T5LM(LM):
                 ).squeeze(-1)
                 answer = (float(target_logits.sum()), bool(max_equal))
             
-                # partial caching
                 if cache_key is not None:
                     self.cache_hook.add_partial("loglikelihood", cache_key, answer)
 
@@ -115,7 +109,6 @@ class T5LM(LM):
 
             s = self.tokenizer.decode(cont[0].tolist())
             
-            # partial caching
             self.cache_hook.add_partial("greedy_until", (context, until), s)
             
             res.append(s)
