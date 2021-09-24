@@ -1,18 +1,90 @@
-# Evaluation Harness for Large Language Models
+# Language Model Evaluation Harness
 
-![](https://github.com/EleutherAI/lm-evaluation-harness/workflows/Python%20application/badge.svg)
+![](https://github.com/EleutherAI/lm-evaluation-harness/workflows/Build/badge.svg)
 [![codecov](https://codecov.io/gh/EleutherAI/lm-evaluation-harness/branch/master/graph/badge.svg?token=JSG3O2427J)](https://codecov.io/gh/EleutherAI/lm-evaluation-harness)
-
-**WARNING**: This project is currently under active development. Interfaces and task implementations may change rapidly and without warning. 
 
 ## Overview 
 
-The goal of this project is to build a set of tools for evaluating LMs on typical NLU tasks, based on evaluation of GPT-3 as described in https://arxiv.org/pdf/2005.14165.pdf. Following the initial description, this repo should support 3 functions:
-1. LM Evaluation
-2. Removing task val/test data from LM training set
-3. Adding task training data to LM training set
+This project provides a unified framework to test autoregressive language models (GPT-2, GPT-3, GPTNeo, etc) on a large number of different evaluation tasks.
 
-### Overview of Tasks
+Features:
+
+- 100+ tasks implemented
+- Support for GPT-2, GPT-3, GPT-Neo, GPT-NeoX, and GPT-J, with flexible tokenization-agnostic interface
+- Task versioning to ensure reproducibility
+
+## Install
+
+```bash
+pip install lm-eval
+```
+
+## Basic Usage
+
+To evaluate a model, (e.g. GPT-2) on NLU tasks (e.g. LAMBADA, HellaSwag), you can run the following command.
+
+```bash
+python main.py \
+	--model gpt2 \
+	--device cuda:0 \
+	--tasks lambada,hellaswag
+```
+(This uses gpt2-117M by default as per HF defaults, use --model_args to specify other gpt2 sizes)
+
+Additional arguments can be provided to the model constructor using the `--model_args` flag. Most importantly, the `gpt2` model can be used to load an arbitrary HuggingFace model. For example, to run GPTNeo use the following:
+
+```bash
+python main.py \
+	--model gpt2 \
+	--model_args pretrained=EleutherAI/gpt-neo-2.7B \
+	--device cuda:0 \
+	--tasks lambada,hellaswag
+```
+
+If you have access to the OpenAI API, you can also evaluate GPT-3:
+
+```bash
+export OPENAI_API_SECRET_KEY=YOUR_KEY_HERE
+python main.py \
+	--model gpt3 \
+	--model_args engine=davinci \
+	--tasks lambada,hellaswag
+```
+
+To evaluate mesh-transformer-jax models that are not available on HF, please invoke eval harness through [this script](https://github.com/kingoflolz/mesh-transformer-jax/blob/master/eval_harness.py).
+
+## Cite as
+
+```
+@software{eval-harness,
+  author       = {Gao, Leo and
+                  Tow, Jonathan and
+                  Biderman, Stella and
+                  Black, Sid and
+                  DiPofi, Anthony and
+                  Foster, Charles and
+                  Golding, Laurence and
+                  Hsu, Jeffrey and
+                  McDonell, Kyle and
+                  Muennighoff, Niklas and
+                  Phang, Jason and
+                  Reynolds, Laria and
+                  Tang, Eric and
+                  Thite, Anish and
+                  Wang, Ben and
+                  Wang, Kevin and
+                  Zou, Andy},
+  title        = {A framework for few-shot language model evaluation},
+  month        = sep,
+  year         = 2021,
+  publisher    = {Zenodo},
+  version      = {v0.0.1},
+  doi          = {10.5281/zenodo.5371628},
+  url          = {https://doi.org/10.5281/zenodo.5371628}
+}
+```
+
+### Full Task List
 
 |                    Task Name                    |Train|Val|Test|Val/Test Docs|                                   Metrics                                    |
 |-------------------------------------------------|-----|---|----|------------:|------------------------------------------------------------------------------|
@@ -36,12 +108,15 @@ The goal of this project is to build a set of tools for evaluating LMs on typica
 |drop                                             |✓    |✓  |    |         9536|em, f1                                                                        |
 |lambada                                          |     |✓  |    |         5153|ppl, acc                                                                      |
 |lambada_cloze                                    |     |✓  |    |         5153|ppl, acc                                                                      |
+|wikitext                                         |     |✓  |✓   |           62|word_perplexity, byte_perplexity, bits_per_byte                               |
 |piqa                                             |✓    |✓  |    |         1838|acc, acc_norm                                                                 |
+|prost                                            |     |   |✓   |        18736|acc, acc_norm                                                                 |
 |pubmedqa                                         |     |   |✓   |         1000|acc                                                                           |
 |sciq                                             |✓    |✓  |✓   |         1000|acc, acc_norm                                                                 |
 |qa4mre_2011                                      |     |   |✓   |          120|acc, acc_norm                                                                 |
 |qa4mre_2012                                      |     |   |✓   |          160|acc, acc_norm                                                                 |
 |qa4mre_2013                                      |     |   |✓   |          284|acc, acc_norm                                                                 |
+|triviaqa                                         |✓    |✓  |    |        11313|acc                                                                           |
 |arc_easy                                         |✓    |✓  |✓   |         2376|acc, acc_norm                                                                 |
 |arc_challenge                                    |✓    |✓  |✓   |         1172|acc, acc_norm                                                                 |
 |logiqa                                           |✓    |✓  |✓   |          651|acc, acc_norm                                                                 |
@@ -197,29 +272,20 @@ The goal of this project is to build a set of tools for evaluating LMs on typica
 
 
 
+
 ## Usage
 
 ### Evaluate a task
 
-To evaluate a model, (e.g. GPT-2) on NLU tasks (e.g. RTE, Winograd Scheme Challenge), you can run the following command.
+Additional arguments can be provided to the model constructor using the `--model_args` flag. Most importantly, the `gpt2` model can be used to load an arbitrary HuggingFace model as follows:
+
 
 ```bash
 python main.py \
 	--model gpt2 \
-	--model_args device=cuda:0 \
-	--tasks rte,wsc \
-	--provide_description \
-	--num_fewshot 2
-```
-
-If you have access to an OpenAI API key, you can also evaluate GPT-3 on various tasks with the following command:
-
-```bash
-export OPENAI_API_SECRET_KEY=YOUR_KEY_HERE
-python main.py \
-	--model gpt3 \
-	--tasks rte,wsc \
-	--provide_description \
+	--model_args pretrained=EleutherAI/gpt-neo-1.3B \
+	--device cuda:0 \
+	--tasks lambada,hellaswag \
 	--num_fewshot 2
 ```
 
@@ -248,6 +314,12 @@ Both LMs (`lm_eval.models`) and Tasks (`lm_eval.tasks`) are kept in a registry d
 **If you want to extend either models or tasks, simply add a new LM or Task subclass, and decorate with the registry decorator**.
 
 The [GPT-3 Evaluations Project](https://github.com/EleutherAI/lm_evaluation_harness/projects/1) tracks our progress implementing new tasks. Right now, we are focused on getting all the datasets loaded so that we can dedupe against the training data. Implementing the actual evaluations is nice but not necessary at the current moment.
+
+### Task Versioning 
+
+To help improve reproducibility, all tasks have a VERSION field. When run from the command line, this is reported in a column in the table, or in the "version" field in the evaluator return dict. The purpose of the version is so that if the task definition changes (i.e to fix a bug), then we can know exactly which metrics were computed using the old buggy implementation to avoid unfair comparisons. To enforce this, there are unit tests that make sure the behavior of all tests remains the same as when they were first implemented. Task versions start at 0, and each time a breaking change is made, the version is incremented by one. 
+
+When reporting eval harness results, please also report the version of each task. This can be done either with a separate column in the table, or by reporting the task name with the version appended as such: taskname-v0.
 
 ## Description
 

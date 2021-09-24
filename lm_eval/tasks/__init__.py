@@ -21,6 +21,8 @@ from . import arithmetic
 from . import lambada
 from . import race
 from . import piqa
+from . import prost
+from . import mc_taco
 from . import triviaqa
 from . import pubmedqa
 from . import sciq
@@ -38,6 +40,9 @@ from . import hendrycks_math
 from . import cbt
 from . import lambada_cloze
 from . import pile
+from . import wikitext
+from . import lambada_multilingual
+from . import mutual
 
 ########################################
 # Translation tasks
@@ -95,25 +100,32 @@ TASK_REGISTRY = {
     "drop": drop.DROP,
     "lambada": lambada.LAMBADA,
     "lambada_cloze": lambada_cloze.LAMBADA_cloze,
+    
+    # multilingual lambada
+    **lambada_multilingual.construct_tasks(),
+
+    "wikitext": wikitext.WikiText,
     # "cbt-cn": cbt.CBTCN, # disabled pending context length fix
     # "cbt-ne": cbt.CBTNE, # disabled pending context length fix
 
     "piqa": piqa.PiQA,
+    "prost": prost.PROST,
+    "mc_taco": mc_taco.MCTACO,
 
     # Science related
     "pubmedqa" : pubmedqa.Pubmed_QA,
     "sciq" : sciq.SciQ,
-    #"qa4mre" : qa4mre.QA4MRE,
+
     "qa4mre_2011" : qa4mre.QA4MRE_2011,
     "qa4mre_2012" : qa4mre.QA4MRE_2012,
     "qa4mre_2013" : qa4mre.QA4MRE_2013,
 
-    #"triviaqa": triviaqa.TriviaQA, # disabled pending memory fix
+    "triviaqa": triviaqa.TriviaQA,
     "arc_easy": arc.ARCEasy,
     "arc_challenge": arc.ARCChallenge,
     # "quac": quac.QuAC, # not implemented yet
     "logiqa": logiqa.LogiQA,
-    "hellaswag": hellaswag.HellaSwag, # not implemented yet
+    "hellaswag": hellaswag.HellaSwag,
     "openbookqa": openbookqa.OpenBookQA,
     # "sat": sat.SATAnalogies, # not implemented yet
     "squad2": squad.SQuAD2,
@@ -134,6 +146,10 @@ TASK_REGISTRY = {
     "ethics_utilitarianism_original": hendrycks_ethics.EthicsUtilitarianismOriginal,
     "ethics_utilitarianism": hendrycks_ethics.EthicsUtilitarianism,
     "ethics_virtue": hendrycks_ethics.EthicsVirtue,
+
+    # dialogue
+    "mutual": mutual.MuTual,
+    "mutual_plus": mutual.MuTualPlus,
 
     # math
     "math_algebra": hendrycks_math.MathAlgebra,
@@ -196,6 +212,7 @@ TASK_REGISTRY = {
     "pile_ubuntu-irc": pile.PileUbuntuIrc,
     "pile_wikipedia": pile.PileWikipedia,
     "pile_youtubesubtitles": pile.PileYoutubeSubtitles,
+    
 }
 
 

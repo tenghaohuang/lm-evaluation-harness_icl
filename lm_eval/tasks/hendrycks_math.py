@@ -4,6 +4,7 @@ from lm_eval.utils import sh
 from lm_eval.metrics import mean
 from lm_eval.base import Task, rf
 from pathlib import Path
+from best_download import download_file
 
 
 class Math(Task):
@@ -15,12 +16,12 @@ class Math(Task):
     DATASET_PATH = Path('data/MATH')
 
     def download(self):
-        if not self.DATASET_PATH.exists():
+        if not (self.DATASET_PATH / 'test').exists() or not (self.DATASET_PATH / 'done').exists():
+            sh(f"mkdir -p {self.DATASET_PATH}")
+            download_file("https://people.eecs.berkeley.edu/~hendrycks/MATH.tar", f"{self.DATASET_PATH}.tar", "01256fd7cd5430596fdf07e6e6a5827111b5235b7ffed679c662a12f898932da")
             sh(f"""
-            mkdir -p {self.DATASET_PATH}
-            wget https://people.eecs.berkeley.edu/~hendrycks/MATH.tar.gz -P data/
-            tar -xf {self.DATASET_PATH}.tar.gz -C data/
-            rm {self.DATASET_PATH}.tar.gz
+            tar -xf {self.DATASET_PATH}.tar -C data/ && touch {self.DATASET_PATH / 'done'}
+            rm {self.DATASET_PATH}.tar
             """)
 
     @abc.abstractmethod
@@ -38,7 +39,7 @@ class Math(Task):
         return True
 
     def _load_docs(self, path):
-        for file in path.iterdir():
+        for file in sorted(path.iterdir()):
             with open(file) as f:
                 doc = json.load(f)
                 doc["answer"] = self.remove_boxed(
@@ -287,35 +288,42 @@ class Math(Task):
 
 
 class MathAlgebra(Math):
+    VERSION = 0
     def get_file_info(self):
         return 'algebra'
 
 
 class MathCountingAndProbability(Math):
+    VERSION = 0
     def get_file_info(self):
         return 'counting_and_probability'
 
 
 class MathGeometry(Math):
+    VERSION = 0
     def get_file_info(self):
         return 'geometry'
 
 
 class MathIntermediateAlgebra(Math):
+    VERSION = 0
     def get_file_info(self):
         return 'intermediate_algebra'
 
 
 class MathNumberTheory(Math):
+    VERSION = 0
     def get_file_info(self):
         return 'number_theory'
 
 
 class MathPrealgebra(Math):
+    VERSION = 0
     def get_file_info(self):
         return 'prealgebra'
 
 
 class MathPrecalculus(Math):
+    VERSION = 0
     def get_file_info(self):
         return 'precalculus'
