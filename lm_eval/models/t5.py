@@ -21,12 +21,15 @@ class T5LM(LM):
         else:
             self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        self.t5 = transformers.AutoModelForSeq2SeqLM.from_pretrained(pretrained).to(self.device)
+        self.t5 = transformers.AutoModelForSeq2SeqLM.from_pretrained(pretrained) # .to(self.device)
         self.t5.eval()
 
-        if parallelize:
+        if parallelize == "True":
+            print(parallelize)
             self.t5.parallelize()
             self.device = torch.device('cuda:0')
+        else:
+            self.t5.to(self.device)
 
         self.tokenizer = transformers.T5TokenizerFast.from_pretrained(pretrained)
         self.max_length = self.MAX_INP_LENGTH
@@ -96,7 +99,6 @@ class T5LM(LM):
                 target_tok = target_tok[:length]
                 greedy_tokens = log_softmax.argmax(dim=-1)
                 max_equal = (greedy_tokens == target_tok).all()
-                # print(max_equal)
                 target_logits = torch.gather(
                     log_softmax, 1, target_tok.unsqueeze(-1)
                 ).squeeze(-1)
