@@ -7,7 +7,7 @@ from . import dec_only_t5
 MODEL_REGISTRY = {
     "gpt2": gpt2.GPT2LM,
     "gpt3": gpt3.GPT3LM,
-    #"deconlyt5": dec_only_t5.DecoderOnlyT5LM,
+    "deconlyt5": dec_only_t5.DecoderOnlyT5LM,
     "t5": t5.T5LM,
     "dummy": dummy.DummyLM,
 }
