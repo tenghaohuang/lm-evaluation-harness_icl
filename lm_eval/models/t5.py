@@ -21,7 +21,7 @@ class T5LM(LM):
         else:
             self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        self.t5 = transformers.AutoModelForSeq2SeqLM.from_pretrained(pretrained) # .to(self.device)
+        self.t5 = transformers.AutoModelForSeq2SeqLM.from_pretrained(pretrained)
         self.t5.eval()
 
         if parallelize == "True":
