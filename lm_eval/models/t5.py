@@ -34,13 +34,6 @@ class T5LM(LM):
         self.tokenizer = transformers.T5TokenizerFast.from_pretrained(pretrained)
         self.max_length = self.MAX_INP_LENGTH
 
-        #gpus = torch.cuda.device_count()
-        #if gpus > 1:
-        #    batch_size_per_gpu = batch_size # todo: adaptive batch size
-
-        #    self.batch_size = batch_size_per_gpu * gpus
-            # self.t5 = nn.DataParallel(self.t5)
-        #else:
         self.batch_size = int(batch_size)
 
     @classmethod
@@ -123,7 +116,7 @@ class T5LM(LM):
 
             context_enc = self.tokenizer(context, return_tensors="pt").to(self.device).input_ids
 
-            primary_until, = self.tokenizer.encode(until[0])
+            primary_until = self.tokenizer.encode(until[0])
 
             cont = self.t5.generate(
                 context_enc,
