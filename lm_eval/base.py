@@ -2,7 +2,7 @@ import abc
 import random
 import numpy as np
 import re
-
+from IPython import embed
 from lm_eval.metrics import mean, perplexity, weighted_perplexity, weighted_mean
 
 
@@ -251,6 +251,33 @@ class Task(abc.ABC):
 
         example = self.doc_to_text(doc)
         return description + labeled_examples + example
+
+    def fewshot_context_ensemble(self, doc, num_fewshot, provide_description, rnd):
+
+        # print("really doing ensemble here")
+        raw_description = self.fewshot_description()
+        description = (raw_description + "\n===\n\n") if provide_description and raw_description else ""
+
+        if num_fewshot == 0:
+            labeled_examples = ""
+        else:
+            # for sets with no training docs, draw from other set *but ensure no overlap with current doc*
+            if self.has_training_docs():
+                fewshotex = self.fewshot_examples(k=num_fewshot, rnd=rnd)
+            else:
+                if self._fewshot_docs is None:
+                    self._fewshot_docs = list(self.validation_docs() if self.has_validation_docs() else self.test_docs())
+
+                fewshotex = rnd.sample(self._fewshot_docs, num_fewshot + 1)
+
+                # get rid of the doc that's the one we're evaluating, if it's in the fewshot
+                fewshotex = [x for x in fewshotex if x != doc][:num_fewshot]
+
+            labeled_examples = [self.doc_to_text(doc) + self.doc_to_target(doc) for doc in fewshotex]
+
+        example = self.doc_to_text(doc)
+        ensemble = [description + labeled_example + "\n\n"+example for labeled_example in labeled_examples]
+        return ensemble
 
 
 class MultipleChoiceTask(Task):

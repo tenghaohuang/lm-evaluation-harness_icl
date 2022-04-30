@@ -3,7 +3,7 @@ import json
 import numpy as np
 import random
 import logging
-
+import os
 from lm_eval import models, tasks, evaluator, base
 
 logging.getLogger("openai").setLevel(logging.WARNING)
@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=None)
     parser.add_argument('--device', type=str, default=None)
     parser.add_argument('--seed', type=int, default=1234)
-    parser.add_argument('--output_path', default=None)
+    parser.add_argument('--output_path', default="/fruitbasket/users/tenghao/lm-evaluation-harness/results")
     parser.add_argument('--limit', type=int, default=None)
     parser.add_argument('--no_cache', action="store_true")
     return parser.parse_args()
@@ -26,6 +26,8 @@ def parse_args():
 def main():
 
     args = parse_args()
+    path = os.path.join(args.output_path, str(args.tasks) + str(args.num_fewshot) + ".txt")
+    print(path)
     random.seed(args.seed)
     np.random.seed(args.seed)
 
@@ -45,12 +47,6 @@ def main():
     task_dict = tasks.get_task_dict(task_names)
 
     results = evaluator.evaluate(lm, task_dict, args.provide_description, args.num_fewshot, args.limit)
-
-    dumped = json.dumps(results, indent=2)
-    print(dumped)
-    if args.output_path:
-        with open(args.output_path, "w") as f:
-            f.write(dumped)
 
     # MAKE TABLE
     from pytablewriter import MarkdownTableWriter, LatexTableWriter
@@ -83,6 +79,15 @@ def main():
 
     print(f"{args.model} ({args.model_args}), limit: {args.limit}, provide_description: {args.provide_description}, num_fewshot: {args.num_fewshot}, batch_size: {args.batch_size}")
     print(md_writer.dumps())
+
+    dumped = json.dumps(results, indent=2)
+    print(dumped)
+
+    path = os.path.join(args.output_path,str(args.tasks)+str(args.num_fewshot)+".txt")
+    if args.output_path:
+        with open(path, "w") as f:
+            f.write(dumped)
+
 
 if __name__ == "__main__":
     main()

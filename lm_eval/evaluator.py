@@ -2,11 +2,11 @@ import collections
 import itertools
 import random
 import lm_eval.metrics
-
+from IPython import embed
 
 def evaluate(lm, task_dict, provide_description, num_fewshot, limit, bootstrap_iters=100000):
     # TODO: completely refactor this entire function to not be a huge mess, ideally breaking it down into smaller pieces
-
+    print("doing emsemble")
     task_dict_items = [(name, task) for name, task in task_dict.items() if(task.has_validation_docs() or task.has_test_docs())]
 
     results = collections.defaultdict(dict)
@@ -38,11 +38,11 @@ def evaluate(lm, task_dict, provide_description, num_fewshot, limit, bootstrap_i
         rnd = random.Random()
         rnd.seed(42)
         rnd.shuffle(task_docs)
-
+        print("total_num",len(task_docs))
         for doc_id, doc in enumerate(itertools.islice(task_docs, 0, limit)):
             docs[(task_name, doc_id)] = doc
 
-            ctx = task.fewshot_context(
+            ctx = task.fewshot_context_ensemble(
                 doc=doc,
                 provide_description=provide_description,
                 num_fewshot=num_fewshot,
@@ -61,6 +61,7 @@ def evaluate(lm, task_dict, provide_description, num_fewshot, limit, bootstrap_i
     process_res_queue = collections.defaultdict(list)
 
     # execute each type of request
+    print("total_num",len(requests))
     for reqtype, reqs in requests.items():
         # TODO: right now, this code runs multiple seperate LM requests for multiple Requests differing
         # only in index. We could implement some kind of caching, but that would be more of a bandaid
@@ -68,8 +69,11 @@ def evaluate(lm, task_dict, provide_description, num_fewshot, limit, bootstrap_i
 
         print("Running", reqtype, "requests")
         resps = getattr(lm, reqtype)([req.args for req in reqs])
-
+        print("before",len(resps))
+        resps = [x for x in resps if x is not None]
+        print("after", len(resps))
         resps = [x if req.index is None else x[req.index] for x, req in zip(resps, reqs)]
+
 
         for resp, (i, task_name, doc, doc_id) in zip(resps, requests_origin[reqtype]):
             process_res_queue[(task_name, doc_id)].append((i, resp))
@@ -81,9 +85,11 @@ def evaluate(lm, task_dict, provide_description, num_fewshot, limit, bootstrap_i
         requests.sort(key=lambda x: x[0])
         requests = [x[1] for x in requests]
 
+
+
         task = task_dict[task_name]
         doc = docs[(task_name, doc_id)]
-
+        # embed()
         metrics = task.process_results(doc, requests)
         for metric, value in metrics.items():
             vals[(task_name, metric)].append(value)
