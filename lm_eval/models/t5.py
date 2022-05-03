@@ -8,14 +8,14 @@ from tqdm import tqdm
 import numpy as np
 import math
 from IPython import embed
-class T5LM(LM):
+class T5LM():
     MAX_GEN_TOKS = 256
     MAX_INP_LENGTH = 512
     VOCAB_SIZE = 32128
     EOT_TOKEN_ID = 1
 
     def __init__(self, device='cuda', parallelize=False, pretrained='t5', batch_size=1):
-        super().__init__()
+
         if device:
             self.device = torch.device(device)
         else:
@@ -105,7 +105,9 @@ class T5LM(LM):
 
     def loglikelihood(self, requests):
         res = []
-
+        print("trace")
+        print(self.batch_size)
+        print(math.ceil(len(requests)/self.batch_size))
         for chunk in tqdm(utils.chunks(requests, self.batch_size), total=math.ceil(len(requests)/self.batch_size)):
 
             '''
@@ -116,6 +118,7 @@ class T5LM(LM):
                 inputs = inputs_batch[num]
                 targets = [targets_batch[num]]*len(inputs)
             '''
+            embed()
             inputs_batch, targets_batch = zip(*chunk)
             for num in range(len(inputs_batch)):
                 sub_res = []
@@ -165,16 +168,18 @@ class T5LM(LM):
                     target_tok = target_tok[:length]
                     greedy_tokens = log_softmax.argmax(dim=-1)
                     max_equal = (greedy_tokens == target_tok).all()
-                    target_logits = torch.gather(
-                        log_softmax, 1, target_tok.unsqueeze(-1)
-                    ).squeeze(-1)
+                    target_logits = torch.gather(log_softmax, 1, target_tok.unsqueeze(-1)).squeeze(-1)
                     answer = (float(target_logits.sum()), bool(max_equal))
                     if cache_key is not None:
                         self.cache_hook.add_partial("loglikelihood", cache_key, answer)
                     sub_res.append(answer)
 
-                logits_score = sum([x[0] for x in sub_res])
-                res.append((logits_score,False))
+                # logits_score = sum([x[0] for x in sub_res])
+                assert(type(sub_res) == tuple)
+                # embed()
+                res.append(sub_res)
+                # print(sub_res)
+                # embed()
         return res
     
     def loglikelihood_rolling(self, requests):

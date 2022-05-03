@@ -277,6 +277,7 @@ class Task(abc.ABC):
 
         example = self.doc_to_text(doc)
         ensemble = [description + labeled_example + "\n\n"+example for labeled_example in labeled_examples]
+
         return ensemble
 
 
@@ -295,10 +296,17 @@ class MultipleChoiceTask(Task):
     def process_results(self, doc, results):
         gold = doc["gold"]
 
-        acc = 1. if np.argmax(results) == gold else 0.
-        completion_len = np.array([float(len(i)) for i in doc["choices"]])
-        acc_norm = 1. if np.argmax(results / completion_len) == gold else 0.
+        # acc = 1. if np.argmax(results) == gold else 0.
+        # completion_len = np.array([float(len(i)) for i in doc["choices"]])
+        # acc_norm = 1. if np.argmax(results / completion_len) == gold else 0.
+        # embed()
 
+        completion_len = np.array([float(len(i)) for i in doc["choices"]])
+        pred = results >= results.max(axis=0)
+        results_norm = results / completion_len[:, None]
+        pred_norm = results_norm >= results_norm.max(axis=0)
+        acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        acc_norm = 1.0 if np.argmax(pred_norm.sum(axis=1)) == gold else 0.0
         return {
             "acc": acc,
             "acc_norm": acc_norm,
@@ -418,41 +426,41 @@ class CachingLM:
         # add hook to lm
         lm.set_cache_hook(self.get_cache_hook())
 
-    def __getattr__(self, attr):
-        def fn(requests):
-            res = []
-            remaining_reqs = []
-            
-            # figure out which ones are cached and which ones are new
-            for req in requests:
-                hsh = hash_args(attr, req)
-                if hsh in self.dbdict:
-                    ob = self.dbdict[hsh]
-
-                    assert ob is not None
-
-                    res.append(ob)
-                else:
-                    res.append(None)
-                    remaining_reqs.append(req)
-            
-            # actually run the LM
-            rem_res = getattr(self.lm, attr)(remaining_reqs)
-
-            # stick the new ones back into the list and also cache any of the new ones
-            resptr = 0
-            for req, r in zip(remaining_reqs, rem_res):
-                while res[resptr] is not None: resptr += 1
-
-                res[resptr] = r
-
-                # caching
-                hsh = hash_args(attr, req)
-                self.dbdict[hsh] = r
-            self.dbdict.commit()
-
-            return res
-        return fn
+    # def __getattr__(self, attr):
+    #     def fn(requests):
+    #         res = []
+    #         remaining_reqs = []
+    #
+    #         # figure out which ones are cached and which ones are new
+    #         for req in requests:
+    #             hsh = hash_args(attr, req)
+    #             if hsh in self.dbdict:
+    #                 ob = self.dbdict[hsh]
+    #
+    #                 assert ob is not None
+    #
+    #                 res.append(ob)
+    #             else:
+    #                 res.append(None)
+    #                 remaining_reqs.append(req)
+    #
+    #         # actually run the LM
+    #         rem_res = getattr(self.lm, attr)(remaining_reqs)
+    #
+    #         # stick the new ones back into the list and also cache any of the new ones
+    #         resptr = 0
+    #         for req, r in zip(remaining_reqs, rem_res):
+    #             while res[resptr] is not None: resptr += 1
+    #
+    #             res[resptr] = r
+    #
+    #             # caching
+    #             hsh = hash_args(attr, req)
+    #             self.dbdict[hsh] = r
+    #         self.dbdict.commit()
+    #
+    #         return res
+    #     return fn
     
     def get_cache_hook(self):
         return CacheHook(self)
