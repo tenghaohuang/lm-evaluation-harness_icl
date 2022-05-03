@@ -2,7 +2,7 @@ import numpy as np
 import random
 from lm_eval.base import rf
 from ..metrics import mean
-from . common import HFTask
+from .common import HFTask
 
 """
 NOTE: This evaluation of Winograd Schema Challenge is based on `partial evaluation`
@@ -16,8 +16,7 @@ class WinogradSchemaChallenge273(HFTask):
     DATASET_PATH = "winograd_wsc"
     DATASET_NAME = "wsc273"
 
-    upper_pronouns = ["A", "An", "The", "She", "He",
-                      "It", "They", "My", "His", "Her", "Their"]
+    upper_pronouns = ["A", "An", "The", "She", "He", "It", "They", "My", "His", "Her", "Their"]
 
     def __init__(self):
         super().__init__()
@@ -39,7 +38,7 @@ class WinogradSchemaChallenge273(HFTask):
             option += "'s"
         # Appropriately lowercase the pronoun in the option.
         pronoun = option.split()[0]
-        start_of_sentence = doc["text"][doc['pronoun_loc'] - 2] == '.'
+        start_of_sentence = doc["text"][doc["pronoun_loc"] - 2] == "."
         if not start_of_sentence and pronoun in self.upper_pronouns:
             return option.replace(pronoun, pronoun.lower())
         return option
@@ -73,7 +72,7 @@ class WinogradSchemaChallenge273(HFTask):
     def partial_context(cls, doc, option):
         # Substitute the pronoun in the original text with the specified
         # option and ignore everything after.
-        return doc["text"][:doc["pronoun_loc"]] + option
+        return doc["text"][: doc["pronoun_loc"]] + option
 
     def doc_to_target(self, doc):
         return self.partial_target(doc)
@@ -119,9 +118,13 @@ class WinogradSchemaChallenge273(HFTask):
         :param results:
             The results of the requests created in construct_requests.
         """
-        return {
-            "acc": np.argmax(results) == doc["label"]
-        }
+        pred = results >= results.max(axis=0)
+        acc = 1.0 if np.argmax(pred.sum(axis=1)) == doc["label"] else 0.0
+        return {"acc": acc}
+
+        # return {
+        #     "acc": np.argmax(results) == doc["label"]
+        # }
 
     def aggregation(self):
         """
@@ -129,9 +132,7 @@ class WinogradSchemaChallenge273(HFTask):
             A dictionary where keys are the names of submetrics and values are
             functions that aggregate a list of metrics
         """
-        return {
-            "acc": mean
-        }
+        return {"acc": mean}
 
     def higher_is_better(self):
         """
@@ -139,6 +140,4 @@ class WinogradSchemaChallenge273(HFTask):
             A dictionary where keys are the names of submetrics and values are
             whether a higher value of the submetric is better
         """
-        return {
-            "acc": True
-        }
+        return {"acc": True}

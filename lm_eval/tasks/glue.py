@@ -1,7 +1,7 @@
 import numpy as np
 from lm_eval.base import rf
 from ..metrics import mean, matthews_corrcoef, f1_score
-from . common import HFTask, yesno
+from .common import HFTask, yesno
 from ..utils import general_detokenize
 
 # Single-Sentence Tasks
@@ -40,19 +40,13 @@ class CoLA(HFTask):
         ll_true, ll_false = results
         pred = ll_true > ll_false
         gold = doc["label"]
-        return {
-            "mcc": (gold, pred)
-        }
+        return {"mcc": (gold, pred)}
 
     def higher_is_better(self):
-        return {
-            "mcc": True
-        }
+        return {"mcc": True}
 
     def aggregation(self):
-        return {
-            "mcc": matthews_corrcoef
-        }
+        return {"mcc": matthews_corrcoef}
 
 
 class SST(HFTask):
@@ -89,19 +83,13 @@ class SST(HFTask):
         ll_positive, ll_negative = results
         pred = ll_positive > ll_negative
         gold = doc["label"]
-        return {
-            "acc": pred == gold
-        }
+        return {"acc": pred == gold}
 
     def higher_is_better(self):
-        return {
-            "acc": True
-        }
+        return {"acc": True}
 
     def aggregation(self):
-        return {
-            "acc": mean
-        }
+        return {"acc": mean}
 
 
 # Inference Tasks
@@ -132,7 +120,7 @@ class MNLI(HFTask):
     def doc_to_text(self, doc):
         return "{}\nQuestion: {} True, False or Neither?\nAnswer:".format(
             doc["premise"],
-            doc["hypothesis"].strip() + ('' if doc["hypothesis"].strip().endswith('.') else '.'),
+            doc["hypothesis"].strip() + ("" if doc["hypothesis"].strip().endswith(".") else "."),
         )
 
     def doc_to_target(self, doc):
@@ -150,19 +138,13 @@ class MNLI(HFTask):
     def process_results(self, doc, results):
         gold = doc["label"]
         pred = np.argmax(results)
-        return {
-            "acc": pred == gold
-        }
+        return {"acc": pred == gold}
 
     def higher_is_better(self):
-        return {
-            "acc": True
-        }
+        return {"acc": True}
 
     def aggregation(self):
-        return {
-            "acc": mean
-        }
+        return {"acc": mean}
 
 
 class MNLIMismatched(MNLI):
@@ -211,19 +193,13 @@ class QNLI(HFTask):
         ll_yes, ll_no = results
         pred = ll_no > ll_yes
         gold = doc["label"]
-        return {
-            "acc": pred == gold
-        }
+        return {"acc": pred == gold}
 
     def higher_is_better(self):
-        return {
-            "acc": True
-        }
+        return {"acc": True}
 
     def aggregation(self):
-        return {
-            "acc": mean
-        }
+        return {"acc": mean}
 
 
 class WNLI(HFTask):
@@ -261,19 +237,13 @@ class WNLI(HFTask):
     def process_results(self, doc, results):
         gold = doc["label"]
         pred = np.argmax(results)
-        return {
-            "acc": pred == gold
-        }
+        return {"acc": pred == gold}
 
     def higher_is_better(self):
-        return {
-            "acc": True
-        }
+        return {"acc": True}
 
     def aggregation(self):
-        return {
-            "acc": mean
-        }
+        return {"acc": mean}
 
 
 class RTE(HFTask):
@@ -307,22 +277,20 @@ class RTE(HFTask):
         return ll_true, ll_false
 
     def process_results(self, doc, results):
-        ll_true, ll_false = results
-        pred = ll_false > ll_true
+
         gold = doc["label"]
-        return {
-            "acc": pred == gold
-        }
+        pred = results >= results.max(axis=0)
+        acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+
+        # ll_true, ll_false = results
+        # pred = ll_false > ll_true
+        return {"acc": acc}
 
     def higher_is_better(self):
-        return {
-            "acc": True
-        }
+        return {"acc": True}
 
     def aggregation(self):
-        return {
-            "acc": mean
-        }
+        return {"acc": mean}
 
 
 # Similarity and Paraphrase Tasks
@@ -369,16 +337,10 @@ class MRPC(HFTask):
         }
 
     def higher_is_better(self):
-        return {
-            "acc": True,
-            "f1": True
-        }
+        return {"acc": True, "f1": True}
 
     def aggregation(self):
-        return {
-            "acc": mean,
-            "f1": f1_score
-        }
+        return {"acc": mean, "f1": f1_score}
 
 
 class QQP(HFTask):
@@ -422,16 +384,10 @@ class QQP(HFTask):
         }
 
     def higher_is_better(self):
-        return {
-            "acc": True,
-            "f1": True
-        }
+        return {"acc": True, "f1": True}
 
     def aggregation(self):
-        return {
-            "acc": mean,
-            "f1": f1_score
-        }
+        return {"acc": mean, "f1": f1_score}
 
 
 class STSB(HFTask):
@@ -449,8 +405,10 @@ class STSB(HFTask):
         return True
 
     def fewshot_description(self):
-        return "Indicate if both sentences mean the same thing from a scale of 0-5, " \
-           "where 5 means identical and 0 means unrelated."
+        return (
+            "Indicate if both sentences mean the same thing from a scale of 0-5, "
+            "where 5 means identical and 0 means unrelated."
+        )
 
     def doc_to_text(self, doc):
         return "sentence 1: {}\nsentence 2: {}\nAnswer:".format(
@@ -462,22 +420,22 @@ class STSB(HFTask):
         return " {}".format(doc["label"])
 
     def construct_requests(self, doc, ctx):
-        """ Uses RequestFactory to construct Requests and returns an iterable of 
+        """Uses RequestFactory to construct Requests and returns an iterable of
         Requests which will be sent to the LM.
 
         :param doc:
             The document as returned from training_docs, validation_docs, or test_docs.
         :param ctx: str
-            The context string, generated by fewshot_context. This includes the natural 
+            The context string, generated by fewshot_context. This includes the natural
             language description, as well as the few shot examples, and the question
-            part of the document for `doc`. 
+            part of the document for `doc`.
         """
         # TODO: implement evaluation.
-        raise NotImplementedError('Evaluation not implemented')
-    
+        raise NotImplementedError("Evaluation not implemented")
+
     def process_results(self, doc, results):
-        """Take a single document and the LM results and evaluates, returning a 
-        dict where keys are the names of submetrics and values are the values of 
+        """Take a single document and the LM results and evaluates, returning a
+        dict where keys are the names of submetrics and values are the values of
         the metric for that one document
 
         :param doc:
@@ -486,22 +444,22 @@ class STSB(HFTask):
             The results of the requests created in construct_requests.
         """
         # TODO: implement evaluation.
-        raise NotImplementedError('Evaluation not implemented')
+        raise NotImplementedError("Evaluation not implemented")
 
     def aggregation(self):
         """
         :returns: {str: [float] -> float}
-            A dictionary where keys are the names of submetrics and values are 
+            A dictionary where keys are the names of submetrics and values are
             functions that aggregate a list of metrics
         """
         # TODO: implement evaluation.
-        raise NotImplementedError('Evaluation not implemented')
+        raise NotImplementedError("Evaluation not implemented")
 
     def higher_is_better(self):
         """
         :returns: {str: bool}
-            A dictionary where keys are the names of submetrics and values are 
+            A dictionary where keys are the names of submetrics and values are
             whether a higher value of the submetric is better
         """
         # TODO: implement evaluation.
-        raise NotImplementedError('Evaluation not implemented')
+        raise NotImplementedError("Evaluation not implemented")

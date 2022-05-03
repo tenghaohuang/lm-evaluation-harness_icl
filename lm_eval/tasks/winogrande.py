@@ -1,5 +1,5 @@
 import numpy as np
-from . common import HFTask
+from .common import HFTask
 from lm_eval.base import rf
 from ..metrics import mean
 
@@ -15,7 +15,7 @@ class Winogrande(HFTask):
     DATASET_PATH = "winogrande"
     DATASET_NAME = "winogrande_xl"
 
-    answer_to_num = {'1': 0, '2': 1}
+    answer_to_num = {"1": 0, "2": 1}
 
     def has_training_docs(self):
         return True
@@ -84,9 +84,12 @@ class Winogrande(HFTask):
         :param results:
             The results of the requests created in construct_requests.
         """
-        return {
-            "acc": np.argmax(results) == self.answer_to_num[doc["answer"]]
-        }
+        # return {
+        #     "acc": np.argmax(results) == self.answer_to_num[doc["answer"]]
+        # }
+        pred = results >= results.max(axis=0)
+        acc = 1.0 if np.argmax(pred.sum(axis=1)) == self.answer_to_num[doc["answer"]] else 0.0
+        return {"acc": acc}
 
     def aggregation(self):
         """
@@ -94,9 +97,7 @@ class Winogrande(HFTask):
             A dictionary where keys are the names of submetrics and values are
             functions that aggregate a list of metrics
         """
-        return {
-            "acc": mean
-        }
+        return {"acc": mean}
 
     def higher_is_better(self):
         """
@@ -104,6 +105,4 @@ class Winogrande(HFTask):
             A dictionary where keys are the names of submetrics and values are
             whether a higher value of the submetric is better
         """
-        return {
-            "acc": True
-        }
+        return {"acc": True}
