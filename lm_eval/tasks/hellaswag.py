@@ -1,6 +1,8 @@
 import re
 from lm_eval.base import MultipleChoiceTask
 from . common import HFTask
+import torch
+import os
 
 
 class HellaSwag(HFTask, MultipleChoiceTask):

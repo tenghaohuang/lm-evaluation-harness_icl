@@ -2,7 +2,8 @@ import numpy as np
 from lm_eval.base import rf
 from ..metrics import mean
 from .common import HFTask
-
+import os
+import torch
 
 class ANLIBase(HFTask):
     VERSION = 0
@@ -78,8 +79,16 @@ class ANLIBase(HFTask):
         """
         gold = doc["label"]
         # pred = np.argmax(results)
-        pred = results >= results.max(axis=0)
-        acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        if os.environ['DIST_AVG'] == 'yes':
+            print('entering dist avg')
+            pred = torch.softmax(torch.Tensor(results), dim=0).numpy()
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        elif os.environ['DIST_AVG'] == 'no':
+            print('entering usual voting')
+            pred = results >= results.max(axis=0)
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        else:
+            raise ValueError('DIST AVG is not set properly')
 
         return {"acc": acc}
 

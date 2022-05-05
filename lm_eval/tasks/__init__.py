@@ -43,6 +43,7 @@ from . import pile
 from . import wikitext
 from . import lambada_multilingual
 from . import mutual
+from . import storycloze
 
 ########################################
 # Translation tasks
@@ -94,6 +95,7 @@ TASK_REGISTRY = {
     "record": superglue.ReCoRD,
     "wic": superglue.WordsInContext,
     "wsc": superglue.SGWinogradSchemaChallenge,
+    "storycloze": storycloze.StoryCloze,
     
     # Order by benchmark/genre?
     "coqa": coqa.CoQA,

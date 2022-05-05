@@ -2,6 +2,9 @@ import numpy as np
 from .common import HFTask
 from lm_eval.base import rf
 from ..metrics import mean
+import ipdb
+import torch
+import os
 
 """
 This evaluation of Winogrande uses partial evaluation as described by
@@ -64,7 +67,8 @@ class Winogrande(HFTask):
         lls = []
         for option in [doc["option1"], doc["option2"]]:
             partial_ctx = self.partial_context(doc, option)
-            full_ctx = self.append_context(ctx, partial_ctx)
+            full_ctx = [self.append_context(ctx_i, partial_ctx) for ctx_i in ctx]
+            # full_ctx = self.append_context(ctx, partial_ctx)
             lls.append(rf.loglikelihood(full_ctx, target)[0])
         return lls
 
@@ -87,8 +91,17 @@ class Winogrande(HFTask):
         # return {
         #     "acc": np.argmax(results) == self.answer_to_num[doc["answer"]]
         # }
-        pred = results >= results.max(axis=0)
-        acc = 1.0 if np.argmax(pred.sum(axis=1)) == self.answer_to_num[doc["answer"]] else 0.0
+        if os.environ['DIST_AVG'] == 'yes':
+            print('entering dist avg')
+            pred = torch.softmax(torch.Tensor(results), dim=0).numpy()
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == self.answer_to_num[doc["answer"]] else 0.0
+        elif os.environ['DIST_AVG'] == 'no':
+            print('entering usual voting')
+            pred = results >= results.max(axis=0)
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == self.answer_to_num[doc["answer"]] else 0.0
+        else:
+            raise ValueError('DIST_AVG is not set properly')
+
         return {"acc": acc}
 
     def aggregation(self):

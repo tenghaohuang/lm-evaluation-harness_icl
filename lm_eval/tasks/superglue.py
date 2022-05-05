@@ -10,6 +10,8 @@ from .common import HFTask, yesno
 from lm_eval.base import rf
 from ..metrics import mean, acc_all, metric_max_over_ground_truths
 from ..utils import general_detokenize
+import torch
+import os
 
 
 class BoolQ(HFTask):
@@ -102,9 +104,20 @@ class CommitmentBank(HFTask):
         # pred = np.argmax(results)
         # acc = 1.0 if pred == gold else 0.0
 
-        pred = results >= results.max(axis=0)
-        pred = np.argmax(pred.sum(axis=1))
-        acc = 1.0 if pred == gold else 0.0
+        if os.environ['DIST_AVG'] == 'yes':
+            print('entering dist avg')
+            # results (num_choices, num_shot)
+            pred = torch.softmax(torch.Tensor(results), dim=0).numpy()
+            pred = np.argmax(pred.sum(axis=1))
+            acc = 1.0 if pred == gold else 0.0
+        elif os.environ['DIST_AVG'] == 'no':
+            print('entering usual voting')
+            pred = results >= results.max(axis=0)
+            pred = np.argmax(pred.sum(axis=1))
+            acc = 1.0 if pred == gold else 0.0
+        else:
+            raise ValueError('DIST_AVG is not set properly')
+
 
         return {"acc": acc, "f1": (pred, gold)}
 
@@ -176,8 +189,20 @@ class Copa(HFTask):
         gold = doc["label"]
         # pred = np.argmax(results)
         # acc = 1. if pred == gold else 0.
-        pred = results >= results.max(axis=0)
-        acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+
+        if os.environ['DIST_AVG'] == 'yes':
+            print('entering dist avg')
+            # results (num_choices, num_shot)
+            pred = torch.softmax(torch.Tensor(results), dim=0).numpy()
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        elif os.environ['DIST_AVG'] == 'no':
+            print('usual voting')
+            pred = results >= results.max(axis=0)
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        else:
+            raise ValueError('DIST_AVG is not set properly')
+
+
 
         return {"acc": acc}
 
@@ -374,12 +399,17 @@ class WordsInContext(HFTask):
         # ll_yes, ll_no = results
 
         # acc = 1.0 if (ll_yes > ll_no) == gold else 0.0
-        gold = doc["label"]
+        # gold = doc["label"]
 
-        results = results[:, ::-1]
-        print("I'm not sure about this, be careful")
-        pred = results >= results.max(axis=0)
-        acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        # results = results[:, ::-1]
+        # print("I'm not sure about this, be careful")
+        # pred = results >= results.max(axis=0)
+        # acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+
+        ll_yes, ll_no = results
+        gold = doc["label"]
+        
+        acc = 1.0 if (np.mean(ll_yes > ll_no) >= 0.5) == gold else 0.0
 
         return {"acc": acc}
 
@@ -447,11 +477,21 @@ class SGWinogradSchemaChallenge(HFTask):
         return ll_yes, ll_no
 
     def process_results(self, doc, results):
+        results = torch.softmax(torch.Tensor(results), dim=0).numpy()
         ll_yes, ll_no = results
         gold = doc["label"]
 
-        acc = 1.0 if (ll_yes > ll_no) == gold else 0.0
 
+        if os.environ['DIST_AVG'] == 'yes':
+            print('entering dist avg')
+            acc = 1.0 if (np.mean(ll_yes) > np.mean(ll_no)) == gold else 0.0
+        elif os.environ['DIST_AVG'] == 'no':
+            print('entering usual voting')
+            # acc = 1.0 if (ll_yes > ll_no) == gold else 0.0
+            acc = 1.0 if (np.mean(ll_yes > ll_no) >= 0.5) == gold else 0.0
+        else:
+            raise ValueError('DIST AVG is not set properly')
+            
         return {"acc": acc}
 
     def higher_is_better(self):
@@ -459,3 +499,4 @@ class SGWinogradSchemaChallenge(HFTask):
 
     def aggregation(self):
         return {"acc": mean}
+

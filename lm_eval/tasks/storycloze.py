@@ -1,6 +1,10 @@
 import csv
-from lm_eval.base import Task
-
+from lm_eval.base import Task, rf
+import numpy as np
+import ipdb
+from lm_eval.metrics import mean, perplexity, weighted_perplexity, weighted_mean
+import torch
+import os
 
 class StoryCloze(Task):
     VERSION = 0
@@ -25,13 +29,14 @@ class StoryCloze(Task):
     def load_doc(self, filename):
         with open(filename, newline="") as file:
             filereader = csv.reader(file)
-            return list(filereader)
+            # we remmove the template names which is the first row of csv file
+            return list(filereader)[1:]
 
     def validation_docs(self):
-        return self.load_doc("data/storycloze/cloze_test_val__winter2018-cloze_test_ALL_val - 1 - 1.csv")
+        return self.load_doc("/fruitbasket/datasets/hugging_face/story_cloze/cloze_test_val__spring2016 - cloze_test_ALL_val.csv")
 
     def test_docs(self):
-        return self.load_doc("data/storycloze/cloze_test_test__winter2018-cloze_test_ALL_test - 1.csv")
+        return self.load_doc("/fruitbasket/datasets/hugging_face/story_cloze/cloze_test_test__spring2016 - cloze_test_ALL_test.csv")
 
     def fewshot_description(self):
         # TODO: figure out fewshot description
@@ -40,8 +45,23 @@ class StoryCloze(Task):
     def doc_to_text(self, doc):
         return " ".join([*doc[1:5]])
 
+    # def doc_to_text(self, doc):
+    #     return " ".join(
+    #         [
+    #             doc["input_sentence_1"],
+    #             doc["input_sentence_2"],
+    #             doc["input_sentence_3"],
+    #             doc["input_sentence_4"],
+    #         ]
+    #     )
+
     def doc_to_target(self, doc):
         return " " + doc[int(doc[-1]) - 4]
+
+    # def doc_to_target(self, doc):
+    #     clozes = [doc["sentence_quiz1"], doc["sentence_quiz2"]]
+    #     # `- 1` because the `answer_right_ending` index is 1-based.
+    #     return " " + clozes[doc["answer_right_ending"] - 1]
 
     def construct_requests(self, doc, ctx):
         """Uses RequestFactory to construct Requests and returns an iterable of
@@ -54,8 +74,13 @@ class StoryCloze(Task):
             language description, as well as the few shot examples, and the question
             part of the document for `doc`.
         """
-        # TODO: implement evaluation.
-        raise NotImplementedError("Evaluation not implemented")
+        # example doc
+        # ['794c804e-89ca-47b1-a583-7300e0509764', 'The Mills next door had a new car.', 'The car was stolen during the weekend.', 'They came to my house and asked me if I knew anything.', "I told them I didn't, but for some reason they suspected me.", 'They called the police to come to my house.', 'They liked me a lot after that.', '1']
+
+        # clozes = [doc["sentence_quiz1"], doc["sentence_quiz2"]]
+        clozes = doc[-3:-1]
+        lls = [rf.loglikelihood(ctx, " {}".format(choice))[0] for choice in clozes]
+        return lls
 
     def process_results(self, doc, results):
         """Take a single document and the LM results and evaluates, returning a
@@ -67,8 +92,19 @@ class StoryCloze(Task):
         :param results:
             The results of the requests created in construct_requests.
         """
-        # TODO: implement evaluation.
-        raise NotImplementedError("Evaluation not implemented")
+        # gold = doc["answer_right_ending"] - 1
+        gold = int(doc[-1]) - 1
+        if os.environ['DIST_AVG'] == 'yes':
+            print('entering dist avg')
+            pred = torch.softmax(torch.Tensor(results), dim=0).numpy()
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        elif os.environ['DIST_AVG'] == 'no':
+            print('entering usual voting')
+            pred = results >= results.max(axis=0)
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        else:
+            raise ValueError('DIST_AVG is not set properly')
+        return {"acc": acc}
 
     def aggregation(self):
         """
@@ -76,8 +112,7 @@ class StoryCloze(Task):
             A dictionary where keys are the names of submetrics and values are
             functions that aggregate a list of metrics
         """
-        # TODO: implement evaluation.
-        raise NotImplementedError("Evaluation not implemented")
+        return {"acc": mean}
 
     def higher_is_better(self):
         """
@@ -85,5 +120,4 @@ class StoryCloze(Task):
             A dictionary where keys are the names of submetrics and values are
             whether a higher value of the submetric is better
         """
-        # TODO: implement evaluation.
-        raise NotImplementedError("Evaluation not implemented")
+        return {"acc": True}

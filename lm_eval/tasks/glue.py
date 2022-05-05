@@ -3,6 +3,8 @@ from lm_eval.base import rf
 from ..metrics import mean, matthews_corrcoef, f1_score
 from .common import HFTask, yesno
 from ..utils import general_detokenize
+import os
+import torch
 
 # Single-Sentence Tasks
 
@@ -279,8 +281,16 @@ class RTE(HFTask):
     def process_results(self, doc, results):
 
         gold = doc["label"]
-        pred = results >= results.max(axis=0)
-        acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        if os.environ['DIST_AVG'] == 'yes':
+            print('entering dist avg')
+            pred = torch.softmax(torch.Tensor(results), dim=0).numpy()
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        elif os.environ['DIST_AVG'] == 'no':
+            print('entering usual voting')
+            pred = results >= results.max(axis=0)
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+        else:
+            raise ValueError('DIST AVG is not set properly')
 
         # ll_true, ll_false = results
         # pred = ll_false > ll_true

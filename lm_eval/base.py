@@ -2,8 +2,11 @@ import abc
 import random
 import numpy as np
 import re
-from IPython import embed
+# from IPython import embed
 from lm_eval.metrics import mean, perplexity, weighted_perplexity, weighted_mean
+import ipdb
+import os
+import torch
 
 
 class LM(abc.ABC):
@@ -300,17 +303,28 @@ class MultipleChoiceTask(Task):
         # completion_len = np.array([float(len(i)) for i in doc["choices"]])
         # acc_norm = 1. if np.argmax(results / completion_len) == gold else 0.
         # embed()
-
-        completion_len = np.array([float(len(i)) for i in doc["choices"]])
-        pred = results >= results.max(axis=0)
-        results_norm = results / completion_len[:, None]
-        pred_norm = results_norm >= results_norm.max(axis=0)
-        acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
-        acc_norm = 1.0 if np.argmax(pred_norm.sum(axis=1)) == gold else 0.0
-        return {
-            "acc": acc,
-            "acc_norm": acc_norm,
-        }
+        if os.environ['DIST_AVG'] == 'yes':
+            print('entering dist avg')
+            completion_len = np.array([float(len(i)) for i in doc["choices"]])
+            results_norm = results / completion_len[:, None]
+            pred = torch.softmax(torch.Tensor(results_norm), dim=0).numpy()
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+            return {"acc": acc}
+            
+        elif os.environ['DIST_AVG'] == 'no':
+            print('entering usual voting')
+            completion_len = np.array([float(len(i)) for i in doc["choices"]])
+            pred = results >= results.max(axis=0)
+            results_norm = results / completion_len[:, None]
+            pred_norm = results_norm >= results_norm.max(axis=0)
+            acc = 1.0 if np.argmax(pred.sum(axis=1)) == gold else 0.0
+            acc_norm = 1.0 if np.argmax(pred_norm.sum(axis=1)) == gold else 0.0
+            return {
+                "acc": acc,
+                "acc_norm": acc_norm,
+            }
+        else:
+            raise ValueError('DIST_AVG is not set properly')
     
     def higher_is_better(self):
         return {
